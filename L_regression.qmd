@@ -18,18 +18,21 @@ new_directory = getwd()
 
 data = read.csv("dataset/TCGA_InfoWithGrade.csv")
 
-pdf("Graphs/distributions.pdf")
+pdf("Graphs/distributions.pdf", width = 7, height = 5)
 
 filtered_genes = data[, !(names(data) %in% c("Gender", "Age_at_diagnosis", "Grade", "Race"))]
 tot_samples = length(filtered_genes$IDH1)
 percentages = apply(filtered_genes, 2 , sum)/tot_samples
-plot(percentages, main = "Percentage of gene mutation", ylab = "percentage")
+#plot(percentages, main = "Percentage of gene mutation", ylab = "Percentage")
+barplot(percentages, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim = c(0,1), main = "Gene mutation(%) in population")
+
+
 dev.off()
 
 
 filtered_grade = data[, !(names(data) %in% c("Gender", "Age_at_diagnosis", "Race"))]
 
-pdf("Graphs/Grade_gbm.pdf")
+pdf("Graphs/Grade_gbm.pdf", width = 7, height = 5)
 gbm_pop = filtered_grade[filtered_grade$Grade == 1, ]
 gbm_pop = gbm_pop[, !names(gbm_pop) %in% "Grade"]
 per_gbm = as.vector(apply(gbm_pop, 2 , sum)/(length(gbm_pop$IDH1)))
@@ -37,7 +40,7 @@ per_gbm = as.vector(apply(gbm_pop, 2 , sum)/(length(gbm_pop$IDH1)))
 barplot(per_gbm, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim = c(0,1), main = "Gene mutation (%) in GBM patients")
 dev.off()
 
-pdf("Graphs/Grade_lgg.pdf")
+pdf("Graphs/Grade_lgg.pdf", width = 7, height = 5)
 lgg_pop = filtered_grade[filtered_grade$Grade == 0, ]
 lgg_pop = lgg_pop[!names(lgg_pop) %in% "Grade"]
 per_lgg = as.vector(apply(lgg_pop, 2 , sum)/(length(lgg_pop$IDH1)))
@@ -46,15 +49,7 @@ barplot(per_lgg, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim =
 
 dev.off()
 
-per_change= abs(per_gbm - per_lgg)
-df = data.frame(colnames(gbm_pop), per_change)
-
-#table_grob <- tableGrob(df)
-#grid.draw(table_grob)
-```
-
-```{r}
-per_change= abs(per_gbm - per_lgg)
+per_change= round(abs(per_lgg-per_gbm),2)
 df = data.frame(colnames(gbm_pop), per_change)
 df = df[order(-df$per_change), ]
 write.csv(df, "per_change.csv", row.names = FALSE)
@@ -75,7 +70,7 @@ melted_cor = melt(round(inverted_cor_result, 2))
 # Reorder the rows of melted_cor based on the desired_order
 
 #melted_cor$Var2 <- factor(melted_cor$Var2, levels = ordered)
-pdf("Graphs/correlationEDA.pdf", width = 10, height = 10)
+pdf("Graphs/correlationEDA.pdf", width = 7, height = 7)
 
 library("ggplot2")
 ggplot(data = melted_cor, aes(x = Var1, y= Var2, fill = value)) +
@@ -84,7 +79,7 @@ ggplot(data = melted_cor, aes(x = Var1, y= Var2, fill = value)) +
   xlab("") +
   ylab("")+
   coord_fixed()+
-  labs(title = "Correlation Matrix") +
+  labs(title = "Correlation Matrix GBM") +
   theme(plot.title = element_text(hjust = 0.5)
         )  # Center the title
 dev.off()
@@ -113,7 +108,7 @@ melted_cor = melt(round(inverted_cor_result, 2))
 # Reorder the rows of melted_cor based on the desired_order
 
 #melted_cor$Var2 <- factor(melted_cor$Var2, levels = ordered)
-pdf("Graphs/correlationEDA.pdf", width = 10, height = 10)
+pdf("Graphs/correlationEDA.pdf", width = 7, height = 7)
 
 library("ggplot2")
 ggplot(data = melted_cor, aes(x = Var1, y= Var2, fill = value)) +
@@ -122,7 +117,7 @@ ggplot(data = melted_cor, aes(x = Var1, y= Var2, fill = value)) +
   xlab("") +
   ylab("")+
   coord_fixed()+
-  labs(title = "Correlation Matrix") +
+  labs(title = "Correlation Matrix LGG") +
   theme(plot.title = element_text(hjust = 0.5)
         )  # Center the title
 dev.off()
