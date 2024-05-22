@@ -5,41 +5,77 @@ editor: visual
 ---
 
 ```{r}
-setwd("/Users/sebastofi/Documents/EPFL/Master/MA4/Biostats")
-new_directory = getwd()
+#setwd("/Users/sebastofi/Documents/EPFL/Master/MA4/Biostats")
+#new_directory = getwd()
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(knitr)
+
+
 data = read.csv("dataset/TCGA_InfoWithGrade.csv")
 
-#pdf("Graphs/histogramsEDA.pdf")
-#par(mfrow=c(2, 2))
+pdf("Graphs/distributions.pdf")
 
 filtered_genes = data[, !(names(data) %in% c("Gender", "Age_at_diagnosis", "Grade", "Race"))]
 tot_samples = length(filtered_genes$IDH1)
 percentages = apply(filtered_genes, 2 , sum)/tot_samples
-plot(percentages)
+plot(percentages, main = "Percentage of gene mutation", ylab = "percentage")
+dev.off()
+
 
 filtered_grade = data[, !(names(data) %in% c("Gender", "Age_at_diagnosis", "Race"))]
 
+pdf("Graphs/Grade_gbm.pdf")
 gbm_pop = filtered_grade[filtered_grade$Grade == 1, ]
 gbm_pop = gbm_pop[, !names(gbm_pop) %in% "Grade"]
 per_gbm = as.vector(apply(gbm_pop, 2 , sum)/(length(gbm_pop$IDH1)))
 
-barplot(per_gbm, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim = c(0,1))
+barplot(per_gbm, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim = c(0,1), main = "Gene mutation (%) in GBM patients")
+dev.off()
 
-
+pdf("Graphs/Grade_lgg.pdf")
 lgg_pop = filtered_grade[filtered_grade$Grade == 0, ]
 lgg_pop = lgg_pop[!names(lgg_pop) %in% "Grade"]
 per_lgg = as.vector(apply(lgg_pop, 2 , sum)/(length(lgg_pop$IDH1)))
 
-barplot(per_lgg, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim = c(0,1))
+barplot(per_lgg, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim = c(0,1), main = "Gene mutation (%) in LGG patients")
+
+dev.off()
 
 per_change= abs(per_gbm - per_lgg)
 df = data.frame(colnames(gbm_pop), per_change)
-print(df[order(-df$per_change), ])
+
+#table_grob <- tableGrob(df)
+#grid.draw(table_grob)
 ```
+
+
+
+```{r}
+per_change= abs(per_gbm - per_lgg)
+df = data.frame(colnames(gbm_pop), per_change)
+df = df[order(-df$per_change), ]
+write.csv(df, "per_change.csv", row.names = FALSE)
+
+#Just top ten changed genes TO DO!!
+
+table_kable <- kable(df, format = "latex", booktabs = TRUE)
+
+# Save kable table to PDF using kableExtra
+kableExtra::save_kable(table_kable, file = "table_output.pdf")
+
+```
+
+```{r}
+install.packages("ggplot2")
+```
+
 
 ```{r}
 cor_result <- abs(cor(gbm_pop))
 inverted_cor_result <- cor_result[,ncol(cor_result):1]
+
 
 library("reshape2")
 melted_cor = melt(round(inverted_cor_result, 2))
@@ -69,8 +105,13 @@ dev.off()
  melted_top10 = melt(cor_result)
 
 without_diagonal =  melted_top10[melted_top10$value < 1 , ]
-gbm_10_values = without_diagonal[order(-without_diagonal$value), ][1:100, ]
-print(gbm_10_values)
+gbm_10_values = without_diagonal[order(-without_diagonal$value), ][1:10, ]
+
+table_kable <- kable(gbm_10_values, format = "latex", booktabs = TRUE)
+
+# Save kable table to PDF using kableExtra
+kableExtra::save_kable(table_kable, file = "table_corelation.pdf")
+
 ```
 
 ```{r}
@@ -104,51 +145,30 @@ interaction2_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGF
                            NF1 + PIK3R1+
                          GRIN2A + IDH2 + FUBP1*IDH2, data = data)
 
-summary(interaction2_logmodel)
-
-```
-
-```{r}
 interaction3_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
                            NF1 + PIK3R1+
                          GRIN2A + IDH2 + FUBP1*IDH2 + IDH1*ATRX, data = data)
 
-summary(interaction3_logmodel)
-```
 
-```{r}
 interaction4_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
                            NF1 + PIK3R1+
                          GRIN2A + IDH2 + IDH1*ATRX+CSMD3*SMARCA4, data = data)
-summary(interaction4_logmodel)
-```
 
-```{r}
 interaction5_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
                            NF1 + PIK3R1+
                          GRIN2A + IDH2 + IDH1*(TP53 + ATRX), data = data)
-summary(interaction5_logmodel)
-```
 
-```{r}
 interaction6_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
                            NF1 + PIK3R1+
                          GRIN2A + IDH2 + SMARCA4*IDH2, data = data)
-summary(interaction6_logmodel)
-```
 
-```{r}
 interaction7_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
                            NF1 + PIK3R1+
                          GRIN2A + IDH2 + ATRX*TP53, data = data)
-summary(interaction7_logmodel)
-```
 
-```{r}
 interaction8_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
                            NF1 + PIK3R1+
                          GRIN2A + IDH2 + FUBP1*GRIN2A, data = data)
-summary(interaction8_logmodel)
 ```
 
 ```{r}
@@ -156,7 +176,7 @@ summary(interaction8_logmodel)
 ```
 
 ```{r}
-install.packages('caret')
+#install.packages("caret")
 ```
 
 ```{r}
