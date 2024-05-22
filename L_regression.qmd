@@ -1,0 +1,183 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+setwd("/Users/sebastofi/Documents/EPFL/Master/MA4/Biostats")
+new_directory = getwd()
+data = read.csv("dataset/TCGA_InfoWithGrade.csv")
+
+#pdf("Graphs/histogramsEDA.pdf")
+#par(mfrow=c(2, 2))
+
+filtered_genes = data[, !(names(data) %in% c("Gender", "Age_at_diagnosis", "Grade", "Race"))]
+tot_samples = length(filtered_genes$IDH1)
+percentages = apply(filtered_genes, 2 , sum)/tot_samples
+plot(percentages)
+
+filtered_grade = data[, !(names(data) %in% c("Gender", "Age_at_diagnosis", "Race"))]
+
+gbm_pop = filtered_grade[filtered_grade$Grade == 1, ]
+gbm_pop = gbm_pop[, !names(gbm_pop) %in% "Grade"]
+per_gbm = as.vector(apply(gbm_pop, 2 , sum)/(length(gbm_pop$IDH1)))
+
+barplot(per_gbm, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim = c(0,1))
+
+
+lgg_pop = filtered_grade[filtered_grade$Grade == 0, ]
+lgg_pop = lgg_pop[!names(lgg_pop) %in% "Grade"]
+per_lgg = as.vector(apply(lgg_pop, 2 , sum)/(length(lgg_pop$IDH1)))
+
+barplot(per_lgg, names.arg = colnames(gbm_pop), las = 3, cex.names = 0.8, ylim = c(0,1))
+
+per_change= abs(per_gbm - per_lgg)
+df = data.frame(colnames(gbm_pop), per_change)
+print(df[order(-df$per_change), ])
+```
+
+```{r}
+cor_result <- abs(cor(gbm_pop))
+inverted_cor_result <- cor_result[,ncol(cor_result):1]
+
+library("reshape2")
+melted_cor = melt(round(inverted_cor_result, 2))
+#Maybe need of melted
+
+#ordered <- c("Church_att", "School_att", "Beer_houses", "Criminals")
+
+# Reorder the rows of melted_cor based on the desired_order
+
+#melted_cor$Var2 <- factor(melted_cor$Var2, levels = ordered)
+pdf("Graphs/correlationEDA.pdf", width = 10, height = 10)
+
+library("ggplot2")
+ggplot(data = melted_cor, aes(x = Var1, y= Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = value), color = 'white', size = 4) +
+  xlab("") +
+  ylab("")+
+  coord_fixed()+
+  labs(title = "Correlation Matrix") +
+  theme(plot.title = element_text(hjust = 0.5)
+        )  # Center the title
+dev.off()
+
+
+ cor_result[lower.tri(cor_result)] = NA
+ melted_top10 = melt(cor_result)
+
+without_diagonal =  melted_top10[melted_top10$value < 1 , ]
+gbm_10_values = without_diagonal[order(-without_diagonal$value), ][1:100, ]
+print(gbm_10_values)
+```
+
+```{r}
+#Model formulation:
+
+general_logmodel = glm(Grade ~ Gender + Age_at_diagnosis + Race + IDH1 + TP53 + ATRX + PTEN + EGFR +
+                         CIC + MUC16 + PIK3CA + NF1 + PIK3R1 + FUBP1 + RB1 + NOTCH1 + BCOR + CSMD3 + SMARCA4+
+                         GRIN2A + IDH2 + FAT4 + PDGFRA, data = data)
+summary(general_logmodel)
+
+```
+
+```{r}
+sub_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2, data = data)
+summary(sub_logmodel)
+```
+
+```{r}
+
+interaction_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2 + IDH1*ATRX, data = data)
+
+summary(interaction_logmodel)
+```
+
+```{r}
+interaction2_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2 + FUBP1*IDH2, data = data)
+
+summary(interaction2_logmodel)
+
+```
+
+```{r}
+interaction3_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2 + FUBP1*IDH2 + IDH1*ATRX, data = data)
+
+summary(interaction3_logmodel)
+```
+
+```{r}
+interaction4_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2 + IDH1*ATRX+CSMD3*SMARCA4, data = data)
+summary(interaction4_logmodel)
+```
+
+```{r}
+interaction5_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2 + IDH1*(TP53 + ATRX), data = data)
+summary(interaction5_logmodel)
+```
+
+```{r}
+interaction6_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2 + SMARCA4*IDH2, data = data)
+summary(interaction6_logmodel)
+```
+
+```{r}
+interaction7_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2 + ATRX*TP53, data = data)
+summary(interaction7_logmodel)
+```
+
+```{r}
+interaction8_logmodel = glm(Grade ~ Age_at_diagnosis + IDH1 + TP53  + PTEN + EGFR +
+                           NF1 + PIK3R1+
+                         GRIN2A + IDH2 + FUBP1*GRIN2A, data = data)
+summary(interaction8_logmodel)
+```
+
+```{r}
+#See the linear shape
+```
+
+```{r}
+install.packages('caret')
+```
+
+```{r}
+#Accuracy of the model
+predictions_sub = predict(sub_logmodel, newdata = data, type = "response")
+threshold = 0.5
+predictions_class = as.factor(ifelse(predictions_sub > threshold, 1, 0))
+
+library(caret)
+cm = confusionMatrix(data = predictions_class, reference = as.factor(data$Grade))
+accuracy = round(cm$overall[1],5)
+print(cm)
+```
+
+```{r}
+predictions_gen = predict(general_logmodel, newdata = data, type = "response")
+threshold = 0.5
+predictions_class = as.factor(ifelse(predictions_gen > threshold, 1, 0))
+
+library(caret)
+cm = confusionMatrix(data = predictions_class, reference = as.factor(data$Grade))
+accuracy = round(cm$overall[1],5)
+print(cm)
+```
