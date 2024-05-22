@@ -4,13 +4,16 @@ format: html
 editor: visual
 ---
 
+
 ```{r}
-#setwd("/Users/sebastofi/Documents/EPFL/Master/MA4/Biostats")
-#new_directory = getwd()
 library(ggplot2)
 library(grid)
 library(gridExtra)
 library(knitr)
+library(kableExtra)
+
+setwd("/Users/sebastofi/Documents/EPFL/Master/MA4/Biostats/V1_report")
+new_directory = getwd()
 
 
 data = read.csv("dataset/TCGA_InfoWithGrade.csv")
@@ -50,27 +53,13 @@ df = data.frame(colnames(gbm_pop), per_change)
 #grid.draw(table_grob)
 ```
 
-
-
 ```{r}
 per_change= abs(per_gbm - per_lgg)
 df = data.frame(colnames(gbm_pop), per_change)
 df = df[order(-df$per_change), ]
 write.csv(df, "per_change.csv", row.names = FALSE)
 
-#Just top ten changed genes TO DO!!
-
-table_kable <- kable(df, format = "latex", booktabs = TRUE)
-
-# Save kable table to PDF using kableExtra
-kableExtra::save_kable(table_kable, file = "table_output.pdf")
-
 ```
-
-```{r}
-install.packages("ggplot2")
-```
-
 
 ```{r}
 cor_result <- abs(cor(gbm_pop))
@@ -106,11 +95,46 @@ dev.off()
 
 without_diagonal =  melted_top10[melted_top10$value < 1 , ]
 gbm_10_values = without_diagonal[order(-without_diagonal$value), ][1:10, ]
+write.csv(gbm_10_values, "top10_correlation_gbm.csv")
 
-table_kable <- kable(gbm_10_values, format = "latex", booktabs = TRUE)
 
-# Save kable table to PDF using kableExtra
-kableExtra::save_kable(table_kable, file = "table_corelation.pdf")
+```
+```{r}
+cor_result <- abs(cor(lgg_pop))
+inverted_cor_result <- cor_result[,ncol(cor_result):1]
+
+
+library("reshape2")
+melted_cor = melt(round(inverted_cor_result, 2))
+#Maybe need of melted
+
+#ordered <- c("Church_att", "School_att", "Beer_houses", "Criminals")
+
+# Reorder the rows of melted_cor based on the desired_order
+
+#melted_cor$Var2 <- factor(melted_cor$Var2, levels = ordered)
+pdf("Graphs/correlationEDA.pdf", width = 10, height = 10)
+
+library("ggplot2")
+ggplot(data = melted_cor, aes(x = Var1, y= Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = value), color = 'white', size = 4) +
+  xlab("") +
+  ylab("")+
+  coord_fixed()+
+  labs(title = "Correlation Matrix") +
+  theme(plot.title = element_text(hjust = 0.5)
+        )  # Center the title
+dev.off()
+
+
+ cor_result[lower.tri(cor_result)] = NA
+ melted_top10 = melt(cor_result)
+
+without_diagonal =  melted_top10[melted_top10$value < 1 , ]
+lgg_10_values = without_diagonal[order(-without_diagonal$value), ][1:10, ]
+write.csv(lgg_10_values, "top10_correlation_lgg.csv")
+
 
 ```
 
